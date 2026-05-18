@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>AI减脂营养师</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<div class="app-container">
+
+  <!-- ══════════════════════════════════════
+       Toast
+       ══════════════════════════════════════ -->
+  <div class="toast" id="toast"></div>
+
+  <!-- ══════════════════════════════════════
+       Ripple Overlay
+       ══════════════════════════════════════ -->
+  <div class="ripple-overlay" id="ripple-overlay"></div>
+
+  <!-- ══════════════════════════════════════
+       PAGE 1: Onboarding
+       ══════════════════════════════════════ -->
+  <div class="page active" id="page-onboarding">
+
+    <!-- Header -->
+    <div class="onboard-header">
+      <div class="onboard-logo">🥗</div>
+      <div class="onboard-title">AI减脂营养师</div>
+      <div class="onboard-subtitle">让每一餐都有数</div>
+    </div>
+
+    <!-- Step Cards -->
+    <div class="onboard-card">
+
+      <!-- Step 1: Body info -->
+      <div class="step active" data-step="1">
+        <div class="step-label">STEP 1 / 3 — 基本信息</div>
+
+        <div style="margin-bottom: 12px;">
+          <label style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:6px;">身高</label>
+          <div class="input-group">
+            <input class="input" id="input-height" type="number" value="170" min="100" max="250" placeholder="输入身高">
+            <span class="input-unit">cm</span>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 14px;">
+          <label style="font-size:13px;color:var(--text-secondary);display:block;margin-bottom:6px;">体重</label>
+          <div class="input-group">
+            <input class="input" id="input-weight" type="number" value="70" min="30" max="200" placeholder="输入体重">
+            <span class="input-unit">kg</span>
+          </div>
+        </div>
+
+        <div class="gender-group">
+          <div class="gender-card selected" id="gender-male">
+            <div class="gender-icon">👨</div>
+            <div class="gender-label">男</div>
+          </div>
+          <div class="gender-card" id="gender-female">
+            <div class="gender-icon">👩</div>
+            <div class="gender-label">女</div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" id="btn-step-next">下一步 →</button>
+      </div>
+
+      <!-- Step 2: Goal -->
+      <div class="step" data-step="2">
+        <div class="step-label">STEP 2 / 3 — 选择目标</div>
+        <div class="goal-group">
+          <div class="goal-card" data-goal="lose">
+            <span class="goal-icon">🔥</span>
+            <div class="goal-info">
+              <div class="goal-title">减脂</div>
+              <div class="goal-desc">制造合理热量缺口，健康减重</div>
+            </div>
+          </div>
+          <div class="goal-card" data-goal="gain">
+            <span class="goal-icon">💪</span>
+            <div class="goal-info">
+              <div class="goal-title">增肌</div>
+              <div class="goal-desc">热量盈余+高蛋白，科学增肌</div>
+            </div>
+          </div>
+          <div class="goal-card" data-goal="maintain">
+            <span class="goal-icon">⚖️</span>
+            <div class="goal-info">
+              <div class="goal-title">保持体重</div>
+              <div class="goal-desc">维持当前体重与健康饮食</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3: Result -->
+      <div class="step" data-step="3">
+        <div class="step-label">STEP 3 / 3 — 你的每日热量目标</div>
+        <div class="calorie-result">
+          <div>
+            <span class="calorie-big" id="calorie-target-display">0</span>
+            <span class="calorie-unit">千卡/天</span>
+          </div>
+          <div class="macro-row">
+            <div class="macro-item">
+              <div class="macro-value" id="macro-protein">--</div>
+              <div class="macro-label">蛋白质 g</div>
+            </div>
+            <div class="macro-item">
+              <div class="macro-value" id="macro-carbs">--</div>
+              <div class="macro-label">碳水 g</div>
+            </div>
+            <div class="macro-item">
+              <div class="macro-value" id="macro-fat">--</div>
+              <div class="macro-label">脂肪 g</div>
+            </div>
+          </div>
+          <div class="ai-note">基于Mifflin-St Jeor公式计算 · 减脂缺口约500千卡</div>
+        </div>
+        <button class="btn btn-primary" id="btn-start">开始减脂之旅</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       PAGE 2: Home
+       ══════════════════════════════════════ -->
+  <div class="page" id="page-home">
+
+    <!-- Header -->
+    <div class="home-header">
+      <div class="header-top">
+        <div class="user-info">
+          <div class="avatar" id="avatar-letter">我</div>
+          <div>
+            <div class="welcome-text" id="greeting-text">早安 🌤️</div>
+            <div class="welcome-name" id="greeting-name">减脂用户</div>
+          </div>
+        </div>
+        <div class="calorie-ring-wrap">
+          <canvas id="calorie-ring-canvas" width="110" height="110"></canvas>
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;">
+            <div style="font-family:var(--font-number);font-size:16px;font-weight:700;" id="ring-remaining">1800</div>
+            <div style="font-size:10px;color:var(--text-muted);">剩余千卡</div>
+          </div>
+          <div class="streak-badge">
+            <span>🔥</span><span id="streak-days">0</span><span>天打卡</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Meal quick access -->
+      <div class="meal-quick">
+        <div class="meal-quick-item" data-meal="早餐">
+          <div class="meal-quick-icon">☀️</div>
+          <div class="meal-quick-label">早餐</div>
+        </div>
+        <div class="meal-quick-item" data-meal="午餐">
+          <div class="meal-quick-icon">🌤️</div>
+          <div class="meal-quick-label">午餐</div>
+        </div>
+        <div class="meal-quick-item" data-meal="晚餐">
+          <div class="meal-quick-icon">🌙</div>
+          <div class="meal-quick-label">晚餐</div>
+        </div>
+        <div class="meal-quick-item" data-meal="加餐">
+          <div class="meal-quick-icon">🍎</div>
+          <div class="meal-quick-label">加餐</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tab-bar">
+      <div class="tab-btn active" data-tab="record">📝 记录</div>
+      <div class="tab-btn" data-tab="analysis">📊 分析</div>
+      <div class="tab-btn" data-tab="ai">🤖 AI助手</div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         Tab 1: Diet Record
+         ══════════════════════════════════════ -->
+    <div class="tab-content active padded" data-tab="record">
+
+      <!-- Search -->
+      <div class="search-bar">
+        <div class="search-input-wrap">
+          <input class="input" id="search-food-input" type="text" placeholder="搜索食物或输入描述...">
+          <div class="search-dropdown" id="search-dropdown"></div>
+        </div>
+        <button class="btn-icon" id="btn-camera">📷</button>
+      </div>
+
+      <!-- Meal groups -->
+      <div id="meals-container" style="min-height:200px;">
+        <div class="text-center text-muted" style="padding:40px">
+          还没有饮食记录<br><br>搜索食物开始记录吧
+        </div>
+      </div>
+
+      <!-- Summary bar -->
+      <div class="summary-bar">
+        <div class="summary-row">
+          <span class="summary-cal-label">已摄入</span>
+          <span class="summary-cal-value" id="summary-cal">0</span>
+          <span class="summary-cal-label">/ 目标</span>
+          <span class="summary-cal-value" id="summary-target">1800</span>
+          <span class="summary-cal-label">千卡</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="summary-progress" style="width:0%"></div>
+        </div>
+        <div class="summary-row">
+          <span class="summary-cal-label" style="color:var(--protein)">蛋白质</span>
+          <span class="summary-cal-value" id="summary-protein">0</span>
+          <span class="summary-cal-label">g</span>
+          <span class="summary-cal-label" style="color:var(--carbs);margin-left:8px;">碳水</span>
+          <span class="summary-cal-value" id="summary-carbs">0</span>
+          <span class="summary-cal-label">g</span>
+          <span class="summary-cal-label" style="color:var(--fat);margin-left:8px;">脂肪</span>
+          <span class="summary-cal-value" id="summary-fat">0</span>
+          <span class="summary-cal-label">g</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         Tab 2: Analysis
+         ══════════════════════════════════════ -->
+    <div class="tab-content padded" data-tab="analysis" id="macro-chart-area">
+
+      <!-- Macro rings -->
+      <div class="card">
+        <div style="font-size:14px;color:var(--text-secondary);margin-bottom:8px;">今日营养素</div>
+        <div class="chart-container" style="position:relative;">
+          <canvas id="macro-ring-canvas" width="200" height="200"></canvas>
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;pointer-events:none;">
+            <div style="font-family:var(--font-number);font-size:28px;font-weight:800;" id="macro-center-cal">0</div>
+            <div style="font-size:12px;color:var(--text-muted);" id="macro-center-target">/1800</div>
+          </div>
+        </div>
+        <div class="chart-labels">
+          <span class="chart-label-dot dot-protein"><span id="pct-protein">--%</span></span>
+          <span class="chart-label-dot dot-carbs"><span id="pct-carbs">--%</span></span>
+          <span class="chart-label-dot dot-fat"><span id="pct-fat">--%</span></span>
+        </div>
+      </div>
+
+      <!-- Weekly chart -->
+      <div class="card">
+        <div style="font-size:14px;color:var(--text-secondary);margin-bottom:4px;">本周热量趋势</div>
+        <div id="weekly-avg" style="font-size:12px;color:var(--text-muted);margin-bottom:8px;"></div>
+        <div class="chart-container">
+          <canvas id="weekly-chart-canvas" width="320" height="160"></canvas>
+        </div>
+        <div style="font-size:10px;color:var(--text-muted);text-align:center;margin-top:4px;">
+          绿色达标 · 红色超标 · 虚线目标值
+        </div>
+      </div>
+
+      <!-- AI Score -->
+      <div class="card ai-score-card">
+        <div style="font-size:14px;color:var(--text-secondary);">今日饮食评分</div>
+        <div class="ai-score-big" id="ai-score-display" style="color:var(--text-muted);">--</div>
+        <div class="ai-score-comment" id="ai-score-comment">记录饮食后可获得AI评分</div>
+      </div>
+
+      <!-- Suggestions -->
+      <div class="card">
+        <div style="font-size:14px;color:var(--text-secondary);margin-bottom:8px;">AI改进建议</div>
+        <div class="suggestion-list" id="suggestions-list">
+          <div class="text-center text-muted">记录饮食后可获得AI建议</div>
+        </div>
+      </div>
+
+      <!-- Trend mini chart -->
+      <div class="card">
+        <div style="font-size:14px;color:var(--text-secondary);">近7天评分趋势</div>
+        <div class="mini-chart-wrap">
+          <canvas id="trend-canvas" width="280" height="100"></canvas>
+          <span class="trend-arrow" id="trend-arrow">--</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════
+         Tab 3: AI Chat
+         ══════════════════════════════════════ -->
+    <div class="tab-content" data-tab="ai" style="display:flex;flex-direction:column;flex:1;">
+
+      <!-- Quick questions -->
+      <div class="quick-questions">
+        <div class="quick-chip">今天吃超了怎么办？</div>
+        <div class="quick-chip">推荐一份低卡晚餐</div>
+        <div class="quick-chip">减脂期能吃火锅吗？</div>
+        <div class="quick-chip">如何补充蛋白质？</div>
+        <div class="quick-chip">帮我分析今天的饮食</div>
+      </div>
+
+      <!-- Chat area -->
+      <div class="chat-area" id="chat-messages">
+        <div class="chat-row">
+          <div class="chat-avatar">🥗</div>
+          <div class="chat-bubble ai">
+            你好！我是你的AI减脂营养师 🥗<br><br>
+            告诉我你吃了什么，我帮你分析热量和营养。你也可以问我任何减脂相关的问题，比如：<br><br>
+            • 今天吃超了怎么调整？<br>
+            • 帮我推荐一份低卡晚餐<br>
+            • 减脂期能吃火锅吗？<br><br>
+            开始记录你的第一餐吧！
+          </div>
+        </div>
+      </div>
+
+      <!-- Input -->
+      <div class="chat-input-bar">
+        <input class="chat-input" id="chat-input" type="text" placeholder="输入消息...">
+        <button class="chat-send" id="btn-send" disabled>➤</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       PAGE 3: Settings
+       ══════════════════════════════════════ -->
+  <div class="page" id="page-settings">
+    <div class="padded">
+
+      <!-- Profile -->
+      <div class="profile-header">
+        <div class="profile-avatar" id="settings-avatar-letter">我</div>
+        <div class="profile-name" id="profile-name-display">减脂用户</div>
+        <div class="profile-stats" id="profile-stats-display">--cm · --kg · 目标--kg</div>
+        <button class="edit-btn" id="btn-edit-profile">编辑资料</button>
+      </div>
+
+      <!-- Calorie target -->
+      <div class="settings-section">
+        <div class="settings-section-title">每日热量目标</div>
+        <div class="card">
+          <div class="target-adjust">
+            <button class="target-btn" id="target-minus">−</button>
+            <div>
+              <div class="target-value" id="settings-target">1800</div>
+              <div style="font-size:12px;color:var(--text-muted);text-align:center;">千卡/天</div>
+            </div>
+            <button class="target-btn" id="target-plus">+</button>
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);text-align:center;" id="settings-macros">
+            蛋白质 135g · 碳水 202g · 脂肪 50g
+          </div>
+        </div>
+      </div>
+
+      <!-- Preferences -->
+      <div class="settings-section">
+        <div class="settings-section-title">饮食偏好</div>
+        <div class="card">
+          <div class="tag-group">
+            <span class="tag">🥬 素食</span>
+            <span class="tag">🥛 无乳糖</span>
+            <span class="tag selected">🥩 高蛋白</span>
+            <span class="tag">🍞 低碳水</span>
+            <span class="tag">🐟 地中海</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Data management -->
+      <div class="settings-section">
+        <div class="settings-section-title">数据管理</div>
+        <div class="card">
+          <button class="btn btn-danger btn-sm" id="btn-clear-today" style="margin-bottom:8px;">清除今日记录</button>
+          <button class="btn btn-outline btn-sm" id="btn-export">导出饮食报告</button>
+        </div>
+      </div>
+
+      <!-- About -->
+      <div class="settings-section">
+        <div class="settings-section-title">关于</div>
+        <div class="card">
+          <div class="about-text">
+            <div>AI减脂营养师 v1.0</div>
+            <div>技术栈：FastAPI + DeepSeek + Canvas</div>
+            <div>让每一餐都有数据可依</div>
+            <div style="margin-top:4px;">由AI编程助手辅助开发</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       Bottom Navigation
+       ══════════════════════════════════════ -->
+  <div class="bottom-nav">
+    <div class="nav-item active" data-page="home">
+      <span class="nav-icon">🏠</span>
+      <span>首页</span>
+    </div>
+    <div class="nav-item" data-page="analysis-nav">
+      <span class="nav-icon">📊</span>
+      <span>分析</span>
+    </div>
+    <div class="nav-item" data-page="ai-nav">
+      <span class="nav-icon">🤖</span>
+      <span>AI</span>
+    </div>
+    <div class="nav-item" data-page="settings">
+      <span class="nav-icon">👤</span>
+      <span>我的</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       Add Food Modal
+       ══════════════════════════════════════ -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal-sheet" id="modal-sheet">
+      <div class="modal-title">添加食物</div>
+
+      <div style="margin-bottom:8px;">
+        <span style="font-size:18px;font-weight:600;" id="modal-food-name">--</span>
+        <span style="font-size:12px;color:var(--text-muted);margin-left:8px;" id="modal-food-cat">--</span>
+      </div>
+
+      <div class="stepper">
+        <button class="stepper-btn" id="stepper-minus">−</button>
+        <div>
+          <span class="stepper-value" id="modal-amount-val">100</span>
+          <span class="stepper-unit"> 克</span>
+        </div>
+        <button class="stepper-btn" id="stepper-plus">+</button>
+      </div>
+
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;" id="modal-nutrition">--</div>
+
+      <div class="meal-type-picker">
+        <div class="meal-type-option selected" data-type="早餐">☀️ 早餐</div>
+        <div class="meal-type-option" data-type="午餐">🌤️ 午餐</div>
+        <div class="meal-type-option" data-type="晚餐">🌙 晚餐</div>
+        <div class="meal-type-option" data-type="加餐">🍎 加餐</div>
+      </div>
+
+      <button class="btn btn-primary" id="btn-confirm-add">确认添加</button>
+      <button class="btn btn-ghost btn-sm" id="btn-cancel-add" style="width:100%;margin-top:8px;">取消</button>
+    </div>
+  </div>
+
+</div><!-- /app-container -->
+
+<script src="js/env.js"></script>
+<script src="js/api-client.js"></script>
+<script src="js/chart-utils.js"></script>
+<script src="js/app.js"></script>
+<script>
+  // Initialize app
+  document.addEventListener('DOMContentLoaded', function() {
+    AppInit();
+  });
+</script>
+
+</body>
+</html>
