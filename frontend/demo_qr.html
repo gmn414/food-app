@@ -58,16 +58,18 @@
   .qr-wrapper {
     background: #fff;
     border-radius: 20px;
-    padding: 20px;
+    padding: 16px;
     display: inline-block;
     margin-bottom: 20px;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    position: relative;
+    line-height: 0;
   }
 
-  .qr-wrapper canvas {
+  .qr-wrapper img {
     display: block;
-    border-radius: 4px;
+    border-radius: 8px;
+    width: 260px;
+    height: 260px;
   }
 
   .url-display {
@@ -77,9 +79,25 @@
     border-radius: 12px;
     padding: 12px 20px;
     word-break: break-all;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
     font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
     letter-spacing: 0.5px;
+  }
+
+  .url-link {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.35);
+    margin-bottom: 20px;
+  }
+
+  .url-link a {
+    color: rgba(255, 255, 255, 0.5);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .url-link a:hover {
+    color: #4CAF50;
   }
 
   .footer {
@@ -135,10 +153,17 @@
   </div>
 
   <div class="qr-wrapper">
-    <canvas id="qr"></canvas>
+    <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=https://gmn414.github.io/food-app/"
+         alt="扫码打开 AI减脂营养师"
+         width="260" height="260"
+         loading="eager">
   </div>
 
   <div class="url-display">https://gmn414.github.io/food-app/</div>
+
+  <div class="url-link">
+    无法扫码？👉 <a href="https://gmn414.github.io/food-app/" target="_blank">直接打开App</a>
+  </div>
 
   <div class="footer">
     <div class="dot"></div>
@@ -146,486 +171,5 @@
   </div>
 </div>
 
-<script>
-(function () {
-  'use strict';
-
-  /* ═══════════════════════════════════════════════════
-     Pure-JS QR Code Generator — GF(256) + Reed-Solomon
-     No external dependencies. Canvas rendering.
-     ═══════════════════════════════════════════════════ */
-
-  var TARGET_URL = 'https://gmn414.github.io/food-app/';
-
-  /* ── GF(256) arithmetic (primitive polynomial x^8 + x^4 + x^3 + x^2 + 1 = 0x11D) ── */
-  var exp = new Int32Array(512);
-  var log = new Int32Array(256);
-  (function () {
-    var x = 1;
-    for (var i = 0; i < 255; i++) {
-      exp[i] = x;
-      exp[i + 255] = x;
-      log[x] = i;
-      x <<= 1;
-      if (x & 0x100) x ^= 0x11D;
-    }
-    log[1] = 0;
-  })();
-
-  function gMul(a, b) {
-    if (a === 0 || b === 0) return 0;
-    return exp[log[a] + log[b]];
-  }
-
-  /* ── Reed-Solomon generator polynomial ────────── */
-  function rsGenPoly(nsym) {
-    var g = [1];
-    for (var i = 0; i < nsym; i++) {
-      g.push(0);
-      for (var j = g.length - 1; j > 0; j--) {
-        g[j] = g[j - 1] ^ gMul(g[j], exp[i]);
-      }
-      g[0] = gMul(g[0], exp[i]);
-    }
-    return g;
-  }
-
-  function rsEncode(data, nsym) {
-    var gen = rsGenPoly(nsym);
-    var res = new Array(data.length + nsym);
-    for (var i = 0; i < data.length; i++) res[i] = data[i];
-    for (var i = data.length; i < res.length; i++) res[i] = 0;
-    for (var i = 0; i < data.length; i++) {
-      var coef = res[i];
-      if (coef !== 0) {
-        for (var j = 1; j < gen.length; j++) {
-          res[i + j] ^= gMul(gen[j], coef);
-        }
-      }
-    }
-    for (var k = 0; k < data.length; k++) res[k] = data[k];
-    return res;
-  }
-
-  /* ── Alphanumeric encoding ─────────────────────── */
-  var ALPHA_TABLE = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:';
-  function alphaIndex(ch) {
-    var i = ALPHA_TABLE.indexOf(ch.toUpperCase());
-    if (i >= 0) return i;
-    // Fallback: map common lowercase/extra chars
-    var map = { '_': 38, '?': -1, '#': -1, '@': -1, '!': -1, '&': -1, '=': -1, '~': -1 };
-    if (map[ch] !== undefined) return map[ch];
-    return 36; // space
-  }
-
-  function encodeAlphaNum(str) {
-    var bits = [];
-    var i = 0;
-    for (; i + 1 < str.length; i += 2) {
-      var v = alphaIndex(str[i]) * 45 + alphaIndex(str[i + 1]);
-      for (var b = 10; b >= 0; b--) bits.push((v >> b) & 1);
-    }
-    if (i < str.length) {
-      var v2 = alphaIndex(str[i]);
-      for (var b2 = 5; b2 >= 0; b2--) bits.push((v2 >> b2) & 1);
-    }
-    return bits;
-  }
-
-  /* ── QR Version capacity tables ────────────────── */
-  // [version]: [total codewords, EC codewords per block(L), num blocks(L), data bits(L)]
-  var VER_INFO = [
-    null,
-    [26, 7, 1, 152],   // V1-L
-    [44, 10, 1, 272],  // V2-L
-    [70, 15, 1, 440],  // V3-L
-    [100, 20, 1, 640], // V4-L
-    [134, 26, 1, 864], // V5-L
-    [172, 18, 2, 1088],// V6-L
-  ];
-
-  function chooseVersion(dataBits) {
-    for (var v = 1; v < VER_INFO.length; v++) {
-      if (VER_INFO[v][3] >= dataBits) return v;
-    }
-    // bump up further if needed
-    var extra = [null,null,null,null,null,null,null,196,242,292,346,404,466,532,581,655,733,815,901,991,1085];
-    for (var j = 0; j < extra.length; j++) {
-      if (extra[j] && extra[j] * 8 >= dataBits) return j;
-    }
-    return 6; // fallback
-  }
-
-  function getModuleCount(version) {
-    return 17 + version * 4;
-  }
-
-  /* ── Build QR matrix (version ≤ 6, L-level EC) ── */
-  function buildQRMatrix(str) {
-    // Step 1: Determine version
-    var dataBits = encodeAlphaNum(str);
-    var version = chooseVersion(dataBits.length);
-    var vi = VER_INFO[version];
-    var totalCodewords = vi[0];
-    var ecPerBlock = vi[1];
-    var numBlocks = vi[2];
-    var dataCodewords = totalCodewords - ecPerBlock * numBlocks;
-
-    // Step 2: Pad data bits to byte boundary
-    var bits = dataBits.slice();
-    var modeIndicator = [0, 0, 1, 0]; // alphanumeric = 0010
-    var charCountBits = version <= 9 ? 9 : (version <= 26 ? 11 : 13);
-    var cc = str.length;
-    var ccBits = [];
-    for (var cbi = charCountBits - 1; cbi >= 0; cbi--) ccBits.push((cc >> cbi) & 1);
-    bits = modeIndicator.concat(ccBits).concat(bits);
-
-    // Terminator (up to 4 zeros)
-    var termLen = Math.min(4, dataCodewords * 8 - bits.length);
-    for (var ti = 0; ti < termLen; ti++) bits.push(0);
-
-    // Pad to byte boundary
-    while (bits.length % 8 !== 0) bits.push(0);
-
-    // Pad bytes (0xEC, 0x11 alternating)
-    var padBytes = [0xEC, 0x11];
-    var pi = 0;
-    while (bits.length < dataCodewords * 8) {
-      var pb = padBytes[pi % 2];
-      for (var pbi = 7; pbi >= 0; pbi--) bits.push((pb >> pbi) & 1);
-      pi++;
-    }
-
-    // Convert bits to codewords
-    var dataWords = [];
-    for (var dwi = 0; dwi < bits.length; dwi += 8) {
-      var byte = 0;
-      for (var by = 0; by < 8; by++) byte = (byte << 1) | bits[dwi + by];
-      dataWords.push(byte);
-    }
-
-    // Step 3: Split into blocks and apply RS encoding
-    var blockDataLen = Math.floor(dataCodewords / numBlocks);
-    var remainder = dataCodewords % numBlocks;
-    var blocks = [];
-    var pos = 0;
-    for (var blk = 0; blk < numBlocks; blk++) {
-      var len = blockDataLen + (blk < remainder ? 1 : 0);
-      var blockData = dataWords.slice(pos, pos + len);
-      pos += len;
-      blocks.push(rsEncode(blockData, ecPerBlock));
-    }
-
-    // Step 4: Interleave
-    var allCodewords = [];
-    // Data interleave
-    var maxDataBlk = blockDataLen + (remainder > 0 ? 1 : 0);
-    for (var di = 0; di < maxDataBlk; di++) {
-      for (var bj = 0; bj < numBlocks; bj++) {
-        if (di < (blockDataLen + (bj < remainder ? 1 : 0))) {
-          allCodewords.push(blocks[bj][di]);
-        }
-      }
-    }
-    // EC interleave
-    for (var ei = 0; ei < ecPerBlock; ei++) {
-      for (var ej = 0; ej < numBlocks; ej++) {
-        allCodewords.push(blocks[ej][blockDataLen + (ej < remainder ? 1 : 0) + ei]);
-      }
-    }
-
-    // Convert to bit stream
-    var finalBits = [];
-    for (var fi = 0; fi < allCodewords.length; fi++) {
-      for (var fb = 7; fb >= 0; fb--) finalBits.push((allCodewords[fi] >> fb) & 1);
-    }
-
-    // Step 5: Build module matrix
-    var size = getModuleCount(version);
-    var matrix = [];
-    for (var r = 0; r < size; r++) { matrix[r] = []; for (var c = 0; c < size; c++) matrix[r][c] = null; }
-
-    // Finder patterns (3 corners)
-    function placeFinder(row, col) {
-      for (var r = -1; r <= 7; r++) {
-        for (var c = -1; c <= 7; c++) {
-          if (row + r < 0 || col + c < 0 || row + r >= size || col + c >= size) continue;
-          var v = (r >= 0 && r <= 6 && c >= 0 && c <= 6) &&
-                  (r === 0 || r === 6 || c === 0 || c === 6 || (r >= 2 && r <= 4 && c >= 2 && c <= 4));
-          matrix[row + r][col + c] = v;
-        }
-      }
-    }
-    placeFinder(0, 0);
-    placeFinder(0, size - 7);
-    placeFinder(size - 7, 0);
-
-    // Timing patterns
-    for (var tp = 8; tp < size - 8; tp++) {
-      matrix[6][tp] = tp % 2 === 0;
-      matrix[tp][6] = tp % 2 === 0;
-    }
-
-    // Alignment pattern (version >= 2)
-    if (version >= 2) {
-      var apPos = 6 + version * 4 - 2; // alignment pattern center
-      for (var ar = -2; ar <= 2; ar++) {
-        for (var ac = -2; ac <= 2; ac++) {
-          var v = ar === -2 || ar === 2 || ac === -2 || ac === 2 || (ar === 0 && ac === 0);
-          if (apPos + ar >= 0 && apPos + ac >= 0 && apPos + ar < size && apPos + ac < size) {
-            // Don't overwrite finder patterns
-            if (!(apPos + ar <= 8 && apPos + ac <= 8) &&
-                !(apPos + ar <= 8 && apPos + ac >= size - 8) &&
-                !(apPos + ar >= size - 8 && apPos + ac <= 8)) {
-              matrix[apPos + ar][apPos + ac] = v;
-            }
-          }
-        }
-      }
-    }
-
-    // Reserve format info area (but don't fill yet)
-    function reserve(r, c) { if (matrix[r][c] === null) matrix[r][c] = false; }
-    for (var fi2 = 0; fi2 < 9; fi2++) {
-      if (fi2 !== 6) { reserve(fi2, 8); reserve(8, fi2); }
-    }
-    for (var fi3 = 0; fi3 < 8; fi3++) {
-      reserve(size - 1 - fi3, 8);
-      reserve(8, size - 1 - fi3);
-    }
-
-    // Dark module
-    matrix[size - 8][8] = true;
-
-    // Step 6: Place data bits
-    var bitIdx = 0;
-    var up = true;
-    var col = size - 1;
-
-    while (col > 0) {
-      if (col === 6) col = 5;
-      var rows = [];
-      if (up) { for (var ru = size - 1; ru >= 0; ru--) rows.push(ru); }
-      else    { for (var rd = 0; rd < size; rd++) rows.push(rd); }
-
-      for (var ri = 0; ri < rows.length; ri++) {
-        var row = rows[ri];
-        for (var cb = 0; cb >= -1; cb--) {
-          var c = col + cb;
-          if (c < 0 || c >= size || row < 0 || row >= size) continue;
-          if (matrix[row][c] !== null) continue;
-          var bit = false;
-          if (bitIdx < finalBits.length) bit = finalBits[bitIdx] === 1;
-          matrix[row][c] = bit;
-          bitIdx++;
-        }
-      }
-      up = !up;
-      col -= 2;
-    }
-
-    // Step 7: Masking
-    var masks = [
-      function(r, c) { return (r + c) % 2 === 0; },
-      function(r, c) { return r % 2 === 0; },
-      function(r, c) { return c % 3 === 0; },
-      function(r, c) { return (r + c) % 3 === 0; },
-      function(r, c) { return (Math.floor(r / 2) + Math.floor(c / 3)) % 2 === 0; },
-      function(r, c) { return ((r * c) % 2) + ((r * c) % 3) === 0; },
-      function(r, c) { return (((r * c) % 2) + ((r * c) % 3)) % 2 === 0; },
-      function(r, c) { return (((r + c) % 2) + ((r * c) % 3)) % 2 === 0; },
-    ];
-
-    function evaluateMask(maskFn) {
-      var score = 0;
-      // Penalty 1: consecutive same-color modules in rows/cols
-      for (var r = 0; r < size; r++) {
-        var rowCount = 0; var colCount = 0;
-        var lastRv = null; var lastCv = null;
-        for (var c = 0; c < size; c++) {
-          var rv = matrix[r][c] !== null ? (matrix[r][c] ^ maskFn(r, c)) : null;
-          var cv = matrix[c][r] !== null ? (matrix[c][r] ^ maskFn(c, r)) : null;
-          if (rv !== null && rv === lastRv) rowCount++;
-          else { if (rowCount >= 5) score += 3 + (rowCount - 5); rowCount = 1; lastRv = rv; }
-          if (cv !== null && cv === lastCv) colCount++;
-          else { if (colCount >= 5) score += 3 + (colCount - 5); colCount = 1; lastCv = cv; }
-        }
-        if (rowCount >= 5) score += 3 + (rowCount - 5);
-        if (colCount >= 5) score += 3 + (colCount - 5);
-      }
-      // Penalty 2: 2x2 blocks
-      for (var r2 = 0; r2 < size - 1; r2++) {
-        for (var c2 = 0; c2 < size - 1; c2++) {
-          var v00 = matrix[r2][c2] !== null ? (matrix[r2][c2] ^ maskFn(r2, c2)) : -1;
-          var v01 = matrix[r2][c2+1] !== null ? (matrix[r2][c2+1] ^ maskFn(r2, c2+1)) : -1;
-          var v10 = matrix[r2+1][c2] !== null ? (matrix[r2+1][c2] ^ maskFn(r2+1, c2)) : -1;
-          var v11 = matrix[r2+1][c2+1] !== null ? (matrix[r2+1][c2+1] ^ maskFn(r2+1, c2+1)) : -1;
-          if (v00 >= 0 && v00 === v01 && v01 === v10 && v10 === v11) score += 3;
-        }
-      }
-      // Penalty 3: finder-like pattern
-      for (var r3 = 0; r3 < size; r3++) {
-        for (var c3 = 0; c3 < size - 6; c3++) {
-          var a = matrix[r3][c3] !== null ? (matrix[r3][c3] ^ maskFn(r3, c3)) : -1;
-          if (a === 1) {
-            var b = matrix[r3][c3+1] !== null ? (matrix[r3][c3+1] ^ maskFn(r3, c3+1)) : -1;
-            var c = matrix[r3][c3+2] !== null ? (matrix[r3][c3+2] ^ maskFn(r3, c3+2)) : -1;
-            var d = matrix[r3][c3+3] !== null ? (matrix[r3][c3+3] ^ maskFn(r3, c3+3)) : -1;
-            var e = matrix[r3][c3+4] !== null ? (matrix[r3][c3+4] ^ maskFn(r3, c3+4)) : -1;
-            var f = matrix[r3][c3+5] !== null ? (matrix[r3][c3+5] ^ maskFn(r3, c3+5)) : -1;
-            var g = matrix[r3][c3+6] !== null ? (matrix[r3][c3+6] ^ maskFn(r3, c3+6)) : -1;
-            if (b === 0 && c === 1 && d === 0 && e === 0 && f === 1 && g === 0) score += 40;
-          }
-        }
-      }
-      // Penalty 4: dark/light ratio
-      var dark = 0; var total = 0;
-      for (var r4 = 0; r4 < size; r4++) {
-        for (var c4 = 0; c4 < size; c4++) {
-          if (matrix[r4][c4] !== null) { total++; if (matrix[r4][c4] ^ maskFn(r4, c4)) dark++; }
-        }
-      }
-      var ratio = dark / total * 100;
-      var low = Math.floor(ratio / 5) * 5;
-      var high = Math.ceil(ratio / 5) * 5;
-      score += Math.min(Math.abs(low - 50) / 5, Math.abs(high - 50) / 5) * 10;
-      return score;
-    }
-
-    function applyMask(matrixSrc, maskFn) {
-      var m = [];
-      for (var r = 0; r < size; r++) { m[r] = []; for (var c = 0; c < size; c++) m[r][c] = matrixSrc[r][c]; }
-      for (var r = 0; r < size; r++) {
-        for (var c = 0; c < size; c++) {
-          if (m[r][c] !== null) m[r][c] = m[r][c] ^ maskFn(r, c);
-        }
-      }
-      return m;
-    }
-
-    var bestMask = 0, bestScore = Infinity, bestMatrix = null;
-    for (var mi = 0; mi < 8; mi++) {
-      var score = evaluateMask(masks[mi]);
-      if (score < bestScore) { bestScore = score; bestMask = mi; bestMatrix = applyMask(matrix, masks[mi]); }
-    }
-
-    // Step 8: Format info (EC level L = 01, mask = bestMask)
-    var formatBits = [];
-    var ecLevelBits = [0, 1]; // L = 01
-    var maskBits = [(bestMask >> 2) & 1, (bestMask >> 1) & 1, bestMask & 1];
-    var rawFormat = ecLevelBits.concat(maskBits);
-    // BCH(15,5) encoding
-    var formatPoly = 0;
-    for (var fpi = 0; fpi < 5; fpi++) formatPoly = (formatPoly << 1) | rawFormat[fpi];
-    var formatGen = 0x537; // generator = x^10 + x^8 + x^5 + x^4 + x^2 + x + 1
-    var formatEC = formatPoly << 10;
-    for (var fei = 4; fei >= 0; fei--) {
-      if (formatEC & (1 << (fei + 10))) formatEC ^= formatGen << fei;
-    }
-    var fullFormat = ((formatPoly << 10) | (formatEC & 0x3FF)) ^ 0x5412; // XOR mask
-    for (var fbi = 14; fbi >= 0; fbi--) formatBits.push((fullFormat >> fbi) & 1);
-
-    // Place format info around finder patterns
-    var formatPositions = [
-      [0,8],[1,8],[2,8],[3,8],[4,8],[5,8],[7,8],[8,8],
-      [8,7],[8,5],[8,4],[8,3],[8,2],[8,1],[8,0],
-      [8,size-1],[8,size-2],[8,size-3],[8,size-4],[8,size-5],[8,size-6],[8,size-7],
-      [size-1,8],[size-2,8],[size-3,8],[size-4,8],[size-5,8],[size-6,8],[size-7,8]
-    ];
-    for (var fpi2 = 0; fpi2 < formatPositions.length; fpi2++) {
-      var fr = formatPositions[fpi2][0];
-      var fc = formatPositions[fpi2][1];
-      if (fr >= 0 && fc >= 0 && fr < size && fc < size) {
-        bestMatrix[fr][fc] = formatBits[fpi2] === 1;
-      }
-    }
-
-    return { matrix: bestMatrix, size: size };
-  }
-
-  /* ── Canvas rendering ──────────────────────────── */
-  function renderQR(canvas, matrix, size, scale) {
-    var dpr = window.devicePixelRatio || 1;
-    var quiet = 4 * scale; // quiet zone
-    var totalSize = (size + 8) * scale;
-
-    canvas.width = totalSize * dpr;
-    canvas.height = totalSize * dpr;
-    canvas.style.width = totalSize + 'px';
-    canvas.style.height = totalSize + 'px';
-
-    var ctx = canvas.getContext('2d');
-    ctx.scale(dpr, dpr);
-
-    // White background
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, totalSize, totalSize);
-
-    // Draw modules
-    ctx.fillStyle = '#1A1A1A';
-    for (var r = 0; r < size; r++) {
-      for (var c = 0; c < size; c++) {
-        if (matrix[r][c]) {
-          var x = quiet + c * scale;
-          var y = quiet + r * scale;
-          // Rounded corners for finder patterns (3x3 blocks at corners)
-          var isFinderOuter = (r <= 7 && c <= 7) || (r <= 7 && c >= size - 8) || (r >= size - 8 && c <= 7);
-          if (isFinderOuter && scale >= 6) {
-            var rr = scale * 0.8;
-            ctx.beginPath();
-            ctx.roundRect(x + scale * 0.1, y + scale * 0.1, scale - scale * 0.2, scale - scale * 0.2, rr);
-            ctx.fill();
-          } else {
-            ctx.fillRect(x, y, scale, scale);
-          }
-        }
-      }
-    }
-
-    // Center logo
-    var logoSize = Math.floor(totalSize * 0.22);
-    var logoX = (totalSize - logoSize) / 2;
-    var logoY = (totalSize - logoSize) / 2;
-
-    // White logo background
-    ctx.fillStyle = '#FFFFFF';
-    ctx.beginPath();
-    ctx.roundRect(logoX - 4, logoY - 4, logoSize + 8, logoSize + 8, logoSize * 0.15);
-    ctx.fill();
-
-    // Green circle
-    var gradient = ctx.createLinearGradient(logoX, logoY, logoX + logoSize, logoY + logoSize);
-    gradient.addColorStop(0, '#1B5E20');
-    gradient.addColorStop(1, '#4CAF50');
-    ctx.fillStyle = gradient;
-    ctx.beginPath();
-    ctx.arc(logoX + logoSize / 2, logoY + logoSize / 2, logoSize / 2, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Leaf emoji
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = Math.floor(logoSize * 0.55) + 'px -apple-system, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('🥗', logoX + logoSize / 2, logoY + logoSize / 2);
-  }
-
-  /* ── Main ──────────────────────────────────────── */
-  try {
-    var result = buildQRMatrix(TARGET_URL);
-    var canvas = document.getElementById('qr');
-    renderQR(canvas, result.matrix, result.size, 8);
-  } catch (e) {
-    console.error('QR generation error:', e);
-    // Fallback: show error text
-    var c = document.getElementById('qr');
-    c.width = 280; c.height = 280;
-    var cx = c.getContext('2d');
-    cx.fillStyle = '#FF5252';
-    cx.font = '14px sans-serif';
-    cx.fillText('QR生成失败，请刷新页面', 40, 140);
-  }
-})();
-</script>
 </body>
 </html>
