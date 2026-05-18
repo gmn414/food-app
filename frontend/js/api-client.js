@@ -2,7 +2,7 @@
    API Client — fetch wrapper with retry & timeout
    ══════════════════════════════════════ */
 
-const API_BASE = window.API_BASE_URL || 'http://127.0.0.1:8000';
+const API_BASE = window.API_BASE_URL || 'https://food-app-backend-7dba.onrender.com';
 
 const api = {
   async request(path, options = {}) {
