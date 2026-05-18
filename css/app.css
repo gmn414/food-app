@@ -933,6 +933,20 @@ body {
   color: var(--text-primary);
   margin-right: auto;
   border-bottom-left-radius: 6px;
+  position: relative;
+}
+
+.offline-badge {
+  display: block;
+  font-size: 10px;
+  color: var(--orange);
+  background: rgba(255, 152, 0, 0.12);
+  padding: 2px 8px;
+  border-radius: 10px;
+  margin-bottom: 6px;
+  width: fit-content;
+  letter-spacing: 1px;
+  border: 1px solid rgba(255, 152, 0, 0.25);
 }
 
 .chat-bubble.user {

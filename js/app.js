@@ -692,8 +692,20 @@
       // Typewriter effect
       await typewriterReply(res.reply);
     } catch (e) {
+      // Remove typing indicator
       typingDiv.remove();
-      appendChatBubble('抱歉，AI服务暂时不可用。请检查网络或API配置。你可以先使用食物知识库搜索功能记录饮食。', 'ai');
+
+      // ─── Offline fallback: use built-in nutrition knowledge base ───
+      const userContext = `身高${state.user.height}，体重${state.user.weight}，目标体重${state.user.targetWeight}，日目标${state.user.dailyCalorieTarget}千卡`;
+
+      // Include today's nutrition if available
+      let fullContext = userContext;
+      if (state.todayData) {
+        fullContext += ` | 已摄入：热量${state.todayData.total_calories}千卡/目标${state.todayData.daily_target}千卡 | 蛋白质${state.todayData.total_protein_g}g/目标${state.todayData.protein_goal_g}g`;
+      }
+
+      const offlineReply = OfflineKB.generateReply(message, fullContext);
+      await typewriterReply(offlineReply, true);
     }
   }
 
@@ -726,16 +738,26 @@
     return row;
   }
 
-  async function typewriterReply(text) {
+  async function typewriterReply(text, isOffline) {
     const area = $('chat-messages');
     const row = document.createElement('div');
     row.className = 'chat-row';
     row.innerHTML = '<div class="chat-avatar">🥗</div><div class="chat-bubble ai"></div>';
     const bubble = row.querySelector('.chat-bubble');
+
+    if (isOffline) {
+      const badge = document.createElement('span');
+      badge.className = 'offline-badge';
+      badge.textContent = '离线模式';
+      bubble.appendChild(badge);
+    }
+
+    const textSpan = document.createElement('span');
+    bubble.appendChild(textSpan);
     area.appendChild(row);
 
     for (let i = 0; i < text.length; i++) {
-      bubble.textContent += text[i];
+      textSpan.textContent += text[i];
       area.scrollTop = area.scrollHeight;
       await new Promise(r => setTimeout(r, 30));
     }
