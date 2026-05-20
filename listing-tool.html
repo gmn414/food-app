@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>亚马逊Listing优化</title>
+<style>
+  :root {
+    --bg: #0A1628;
+    --card-bg: rgba(255, 255, 255, 0.04);
+    --border: rgba(255, 255, 255, 0.08);
+    --text: #E8EDF2;
+    --text-secondary: rgba(255, 255, 255, 0.65);
+    --text-muted: rgba(255, 255, 255, 0.40);
+    --accent: #FF9900;
+    --accent-hover: #FFB84D;
+    --accent-glow: rgba(255, 153, 0, 0.25);
+    --green: #4CAF50;
+    --red: #EF5350;
+    --input-bg: rgba(255, 255, 255, 0.06);
+    --font-number: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    background: linear-gradient(160deg, #0A1628 0%, #0F2240 40%, #162D50 100%);
+    min-height: 100vh;
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .container {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 24px 32px;
+  }
+
+  /* ── Header ── */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .logo {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #FF9900 0%, #FFB84D 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    box-shadow: 0 8px 24px var(--accent-glow);
+  }
+
+  .title {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  .subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+  }
+
+  .back-link {
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    padding: 8px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    transition: all 0.2s;
+  }
+
+  .back-link:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text);
+  }
+
+  /* ── Main Layout ── */
+  .main-grid {
+    display: grid;
+    grid-template-columns: 400px 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  @media (max-width: 960px) {
+    .main-grid {
+      grid-template-columns: 1fr;
+    }
+    .container { padding: 16px; }
+  }
+
+  /* ── Input Panel ── */
+  .input-panel {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 28px;
+    position: sticky;
+    top: 24px;
+  }
+
+  .input-panel h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .form-group {
+    margin-bottom: 18px;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 6px;
+    font-weight: 500;
+  }
+
+  .form-group textarea,
+  .form-group input {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: var(--text);
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    resize: vertical;
+  }
+
+  .form-group textarea:focus,
+  .form-group input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+
+  .form-group textarea { min-height: 90px; }
+
+  .btn-generate {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #FF9900 0%, #FFB84D 100%);
+    color: #1A1A1A;
+    border: none;
+    border-radius: 14px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.25s;
+    box-shadow: 0 6px 24px var(--accent-glow);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-generate:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 32px var(--accent-glow);
+  }
+
+  .btn-generate:active { transform: translateY(0); }
+
+  .btn-generate:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .btn-generate .spinner {
+    display: none;
+    width: 20px; height: 20px;
+    border: 2.5px solid rgba(26, 26, 26, 0.3);
+    border-top-color: #1A1A1A;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin-right: 8px;
+  }
+
+  .btn-generate.loading .spinner { display: inline-block; }
+  .btn-generate.loading .btn-text { display: none; }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  /* ── Result Panel ── */
+  .result-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .result-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: border-color 0.3s;
+  }
+
+  .result-card.pending {
+    border-color: rgba(255, 153, 0, 0.3);
+  }
+
+  .result-card.loading-card {
+    border-color: rgba(255, 153, 0, 0.4);
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .card-header h3 {
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-header .icon {
+    font-size: 18px;
+  }
+
+  .btn-copy {
+    font-size: 12px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+
+  .btn-copy:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text);
+  }
+
+  .btn-copy.copied {
+    background: var(--green);
+    border-color: var(--green);
+    color: #fff;
+  }
+
+  .card-body {
+    padding: 16px 20px;
+    min-height: 60px;
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text-secondary);
+  }
+
+  .card-body .placeholder {
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  /* ── Shimmer Loading ── */
+  .shimmer {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .shimmer-line {
+    height: 14px;
+    border-radius: 7px;
+    background: linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.04) 25%,
+      rgba(255, 255, 255, 0.08) 50%,
+      rgba(255, 255, 255, 0.04) 75%
+    );
+    background-size: 200% 100%;
+    animation: shimmerAnim 1.5s ease-in-out infinite;
+  }
+
+  .shimmer-line.short { width: 60%; }
+  .shimmer-line.medium { width: 80%; }
+
+  @keyframes shimmerAnim {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* ── Status Bar ── */
+  .status-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+
+  .status-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--text-muted);
+  }
+
+  .status-dot.active {
+    background: var(--accent);
+    box-shadow: 0 0 8px var(--accent-glow);
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+
+  .status-dot.done {
+    background: var(--green);
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.3); }
+  }
+
+  /* ── Tooltip ── */
+  .toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: #333;
+    color: #fff;
+    padding: 10px 24px;
+    border-radius: 10px;
+    font-size: 13px;
+    pointer-events: none;
+    transition: transform 0.3s ease;
+    z-index: 100;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+  }
+
+  .toast.show {
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ── Keyword styling ── */
+  .kw-section {
+    margin-bottom: 12px;
+  }
+
+  .kw-section:last-child { margin-bottom: 0; }
+
+  .kw-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+
+  .kw-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .kw-tag {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: rgba(255, 153, 0, 0.12);
+    color: var(--accent-hover);
+    border: 1px solid rgba(255, 153, 0, 0.2);
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-left">
+      <div class="logo">📦</div>
+      <div>
+        <div class="title">亚马逊Listing AI优化</div>
+        <div class="subtitle">DeepSeek驱动 · 一键生成高质量Listing</div>
+      </div>
+    </div>
+    <a href="index.html" class="back-link">← 返回首页</a>
+  </div>
+
+  <!-- Main Grid -->
+  <div class="main-grid">
+    <!-- Left: Input -->
+    <div class="input-panel">
+      <h2>📝 产品信息</h2>
+
+      <div class="form-group">
+        <label>产品名称</label>
+        <input type="text" id="input-product-name" placeholder="例如：无线蓝牙降噪耳机 Pro Max">
+      </div>
+
+      <div class="form-group">
+        <label>核心卖点</label>
+        <textarea id="input-selling-points" placeholder="例如：主动降噪达45dB、续航40小时、蓝牙5.3、IPX5防水、轻量化仅220g"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>目标用户</label>
+        <input type="text" id="input-target-user" placeholder="例如：通勤上班族、学生、音乐爱好者">
+      </div>
+
+      <div class="form-group">
+        <label>产品规格</label>
+        <textarea id="input-specifications" placeholder="例如：颜色：黑色/白色/蓝色 | 材质：航空铝合金+蛋白皮耳罩 | 重量：220g | 充电接口：Type-C | 蓝牙版本：5.3 | 驱动单元：40mm"></textarea>
+      </div>
+
+      <button class="btn-generate" id="btn-generate" onclick="generateListing()">
+        <span class="spinner"></span>
+        <span class="btn-text">✨ 生成Listing</span>
+      </button>
+    </div>
+
+    <!-- Right: Results -->
+    <div class="result-panel" id="result-panel">
+      <!-- Status -->
+      <div class="status-bar">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-text">等待输入产品信息</span>
+      </div>
+
+      <!-- Title Card -->
+      <div class="result-card" id="card-title">
+        <div class="card-header">
+          <h3><span class="icon">🏷️</span> 产品标题</h3>
+          <button class="btn-copy" onclick="copyResult('title')" id="btn-copy-title">📋 复制</button>
+        </div>
+        <div class="card-body" id="body-title">
+          <span class="placeholder">输入产品信息后点击生成</span>
+        </div>
+      </div>
+
+      <!-- Bullet Points Card -->
+      <div class="result-card" id="card-bullets">
+        <div class="card-header">
+          <h3><span class="icon">📌</span> 五点描述</h3>
+          <button class="btn-copy" onclick="copyResult('bullet_points')" id="btn-copy-bullets">📋 复制</button>
+        </div>
+        <div class="card-body" id="body-bullets">
+          <span class="placeholder">输入产品信息后点击生成</span>
+        </div>
+      </div>
+
+      <!-- Description Card -->
+      <div class="result-card" id="card-desc">
+        <div class="card-header">
+          <h3><span class="icon">📄</span> 产品描述</h3>
+          <button class="btn-copy" onclick="copyResult('description')" id="btn-copy-desc">📋 复制</button>
+        </div>
+        <div class="card-body" id="body-desc">
+          <span class="placeholder">输入产品信息后点击生成</span>
+        </div>
+      </div>
+
+      <!-- Keywords Card -->
+      <div class="result-card" id="card-kw">
+        <div class="card-header">
+          <h3><span class="icon">🔑</span> 搜索关键词</h3>
+          <button class="btn-copy" onclick="copyResult('keywords')" id="btn-copy-kw">📋 复制</button>
+        </div>
+        <div class="card-body" id="body-kw">
+          <span class="placeholder">输入产品信息后点击生成</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/listing-tool.js"></script>
+</body>
+</html>

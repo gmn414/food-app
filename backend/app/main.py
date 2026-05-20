@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 
 from .database import SessionLocal, engine
 from .models import Base
-from .routers import ai, diet, food
+from .routers import ai, diet, food, listing
 from .services.food_kb import seed_food_knowledge
 
 
@@ -41,6 +41,7 @@ app.add_middleware(
 app.include_router(food.router)
 app.include_router(diet.router)
 app.include_router(ai.router)
+app.include_router(listing.router)
 
 
 @app.get("/api/v1/user/profile")
