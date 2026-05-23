@@ -1,28 +1,9 @@
 services:
   - type: web
-    name: food-app-api
-    env: python
-    region: singapore
-    plan: free
-    rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: bash start.sh
+    name: food-app-agent
+    runtime: python
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: DEEPSEEK_API_KEY
         sync: false
-      - key: DATABASE_URL
-        value: sqlite:///./food_app.db
-      - key: PYTHON_VERSION
-        value: "3.11.0"
-
-  - type: static
-    name: food-app-frontend
-    env: static
-    region: singapore
-    plan: free
-    rootDir: frontend
-    buildCommand: null
-    publishDir: .
-    envVars:
-      - key: API_BASE_URL
-        value: https://food-app-api.onrender.com
